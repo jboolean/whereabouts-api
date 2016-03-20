@@ -19,14 +19,16 @@ func (err resourceError) Error() string {
 func (err *resourceError) WriteToResponseAsJson(w http.ResponseWriter) {
 	if err != nil {
 		if err.Source != nil {
-			log.Print(err.Source)
+			log.Printf("Resource error: %s\n", err.Source)
 		}
+
+		w.WriteHeader(err.Code)
 		if errEncodeErr := json.NewEncoder(w).Encode(err); errEncodeErr != nil {
-			log.Print(errEncodeErr)
+			log.Printf("Encoder error:%v:", errEncodeErr)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		w.WriteHeader(err.Code)
+
 		return
 	}
 }
@@ -49,7 +51,7 @@ func (fn jsonResource) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Print(err)
+		log.Printf("Encoder error:%v:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
