@@ -1,0 +1,268 @@
+swagger: "2.0"
+info:
+  version: 0.0.1
+  title: Whereabouts
+  description: A service to track and view users' locations relative to a home base.
+  contact:
+    name: Julian Boilen
+    email: julianboilen@gmail.com
+    url: http://julianboilen.com
+#host: petstore.swagger.io
+basePath: /
+schemes:
+  - http
+consumes:
+  - application/json
+produces:
+  - application/json
+security:
+ - authenticatedUser: []
+
+paths:
+  /users:
+    post:
+      summary: Create a new user account
+      description: Requires the admin role
+      operationId: createUser
+      parameters:
+        - name: user
+          in: body
+          description: |
+            Create a sure account. Password will be set on login
+            if not specified.
+          required: true
+          schema:
+            $ref: '#/definitions/NewUser'
+      responses:
+        201:
+          description: Created user
+          schema:
+            $ref: '#/definitions/User'
+        400:
+          description: Error such as username taken
+          schema:
+            $ref: '#/definitions/Error'
+          
+  /users/{username}:
+    parameters:
+    - name: username
+      in: path
+      required: true
+      type: string
+    get:
+      description: Get user details. [Role Read]
+      operationId: findUser
+      responses:
+        200:
+          description: User
+          schema:
+            $ref: '#/definitions/User'
+    delete:
+      operationId: deleteUser
+      responses:
+        204:
+          description: User deleted
+  /users/{username}/password:
+    parameters:
+      - name: username
+        in: path
+        required: true
+        type: string
+    put:
+      operationId: changePassword
+      summary: Change or bootstrap password
+      description: |
+        Change password. Must be self or admin. 
+        Null clears value and it will be set on next login.
+      parameters:
+        - name: password
+          in: body
+          required: false
+          schema:
+            type: string
+      responses:
+        204:
+          description: Changed
+  
+  /persistent-sessions:
+    post:
+      operationId: createSession
+      summary: Login
+      description: |
+        This endpoint is public.
+        Creates a new session, logging out any existing session.
+        The key in the response should be used in the X-Session-Key header 
+        for all authenticated requests going forward.
+      parameters:
+        - name: new-session
+          in: body
+          required: true
+          schema:
+            required:
+              - username
+            properties:
+              username:
+                type: string
+        - name: x-password
+          in: header
+          required: true
+          type: string
+      responses:
+        201:
+          description: New session and session key
+          schema:
+            $ref: '#/definitions/PersistentSession'
+        401:
+          description: Bad password provided in x-password header
+          
+  /whereabouts/raw/{username}:
+    post:
+      operationId: submitLocation
+      summary: Post current location
+      description: |
+        [Role maintain location]
+        Report the current location of the authenticated user.
+        This resource may be rate limited.
+        The posted location is not stored or retriveable later.
+        It is processed asynchonously and will eventually 
+        be available as a location summary.
+      parameters:
+        - name: username
+          in: path
+          required: true
+          type: string
+        - name: current-location
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/RawLocation'
+      responses:
+        201:
+          description: Raw location object as sent
+          schema: 
+            $ref: '#/definitions/RawLocation'
+        429:
+          description: |
+            The client has made an an unreasonable number of requests
+            in a short time period. Every 5 minutes is plenty. 
+            The actual limit may be more frequent.
+            
+  /whereabouts/summaries/{username}/current:
+    get:
+      operationId: getCurrentWhereaboutsSummary
+      description: |
+        [Role read]
+        Get a summary of the user's location and movement relative to home.
+      parameters:
+        - name: username
+          in: path
+          type: string
+          required: true
+      responses:
+        200:
+          description: Current whereabouts summary
+          schema:
+            $ref: '#/definitions/CurrentWhereaboutsSummary'
+
+        404:
+          description: No data yet or invalid username.
+  /whereabouts/summaries/current:
+    get:
+      operationId: getCurrentWhereaboutsSummaryForAllUsers
+      description: |
+        [Role read]
+        Current summaries of all users.
+      responses:
+        200:
+          description: Current whereabouts summary
+          schema:
+            required:
+              - results
+            properties:
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/CurrentWhereaboutsSummary'
+            
+    
+            
+securityDefinitions:
+  # Limits of swagger. This is just a session key, not so much an "api key"
+  # Also it has scopes/roles, but swagger only allows using those with oauth.
+  authenticatedUser:
+    type: apiKey
+    name: x-session-key
+    in: header
+    
+definitions:
+  NewUser:
+    allOf:
+      - $ref: '#/definitions/User'
+      - properties:
+          password:
+            type: string
+  User:
+    required:
+     - username
+     - displayName
+    properties:
+      username:
+        type: string
+      displayName:
+        type: string
+      roles:
+        type: array
+        uniqueItems: true
+        items:
+          type: integer
+          enum:
+            - 1 # read data
+            - 2 # maintain location
+            - 3 # admin
+  PersistentSession:
+    required:
+      - username
+      - key
+    properties:
+      username:
+        type: string
+      key:
+        type: string
+  LatLng:
+    required:
+      - lat
+      - lng
+    properties:
+      lat:
+        type: number
+        format: double
+      lng:
+        type: number
+        format: double
+  RawLocation:
+    required:
+      - position
+    properties:
+      position:
+        $ref: '#/definitions/LatLng'
+      
+  CurrentWhereaboutsSummary:
+    required:
+      - timeToHome
+      - velocity
+    properties:
+      timeToHome:
+        type: number
+        format: double
+        description: Approxmate time to home base via default transit mode.
+      velocity:
+        type: number
+        format: double
+        description: |
+          Approximate change in distance from home in m/s.
+  Error:
+    required:
+      - error
+    properties:
+      error:
+        type: string
