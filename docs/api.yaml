@@ -11,6 +11,7 @@ info:
 basePath: /
 schemes:
   - http
+  - https
 consumes:
   - application/json
 produces:
