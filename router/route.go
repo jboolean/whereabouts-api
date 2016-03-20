@@ -7,7 +7,7 @@ import (
 // A Route represents a web resource and a route to it
 type Route struct {
 	Name    string
-	Method  HttpMethod
+	Method  string
 	Pattern string
 	// Create your own stucts to provide addition information
 	// That this router package need not be privy to

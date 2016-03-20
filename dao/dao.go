@@ -2,8 +2,9 @@ package dao
 
 import (
 	"database/sql"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"log"
+	"os"
 )
 
 var UserDAO userDAO
@@ -23,7 +24,14 @@ Usage example:
 As a consequence, all daos must be registered here.
 */
 func init() {
-	db, err := sql.Open("postgres", "user=julianboilen dbname=whereabouts sslmode=disable")
+	url := os.Getenv("DATABASE_URL")
+	connection, _ := pq.ParseURL(url)
+	sslmode := os.Getenv("PGSSL")
+	if sslmode == "" {
+		sslmode = "disable"
+	}
+	connection += " sslmode=" + sslmode
+	db, err := sql.Open("postgres", connection)
 	if err != nil {
 		log.Fatal(err)
 	}
