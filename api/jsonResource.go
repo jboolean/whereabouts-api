@@ -40,6 +40,7 @@ func (fn jsonResource) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		err.WriteToResponseAsJson(w)
+		return
 	}
 
 	if response == nil {
