@@ -1381,13 +1381,19 @@ SwaggerClient.prototype.buildFromSpec = function (response) {
   }
 
   var location;
-
+  var activeScheme = window.location.protocol;
+  activeScheme = activeScheme.substr(0, activeScheme.length - 1)
   if (typeof this.url === 'string') {
     location = this.parseUri(this.url);
+
     if (typeof this.scheme === 'undefined' && typeof this.schemes === 'undefined' || this.schemes.length === 0) {
-      this.scheme = location.scheme || 'http';
+      this.scheme = location.scheme || activeScheme;
     } else if (typeof this.scheme === 'undefined') {
-      this.scheme = this.schemes[0] || location.scheme;
+      if (this.schemes && this.schemes.indexOf(activeScheme) !== -1) {
+        this.scheme = activeScheme;
+      } else {
+        this.scheme = this.schemes[0] || location.scheme;
+      }
     }
 
     if (typeof this.host === 'undefined' || this.host === '') {
@@ -1400,10 +1406,14 @@ SwaggerClient.prototype.buildFromSpec = function (response) {
   }
   else {
     if (typeof this.schemes === 'undefined' || this.schemes.length === 0) {
-      this.scheme = 'http';
+      this.scheme = activeScheme;
     }
     else if (typeof this.scheme === 'undefined') {
-      this.scheme = this.schemes[0];
+       if (this.schemes && this.schemes.indexOf(activeScheme) !== -1) {
+        this.scheme = activeScheme;
+      } else {
+        this.scheme = this.schemes[0];
+      }
     }
   }
 
