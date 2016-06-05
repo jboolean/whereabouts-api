@@ -177,13 +177,8 @@ paths:
         200:
           description: Current whereabouts summary
           schema:
-            required:
-              - results
-            properties:
-              results:
-                type: array
-                items:
-                  $ref: '#/definitions/CurrentWhereaboutsSummary'
+            $ref: '#/definitions/CurrentWhereaboutsSummaries'
+            
             
     
             
@@ -261,6 +256,14 @@ definitions:
         format: double
         description: |
           Approximate change in distance from home in m/s.
+  CurrentWhereaboutsSummaries:
+    required:
+      - results
+    properties:
+      results:
+        type: array
+        items:
+          $ref: '#/definitions/CurrentWhereaboutsSummary'
   Error:
     required:
       - error
